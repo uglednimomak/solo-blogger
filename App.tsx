@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleView } from './components/ArticleView';
 import { AdminPanel } from './components/AdminPanel';
+import { TagFilter } from './components/TagFilter';
 import { Article, AgentStatus, NewsStory } from './types';
 import { runResearcherAgent, runJournalistAgent } from './services/geminiService';
-import { Loader2, BrainCircuit } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
 
 // Constants
 const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 Hours
@@ -15,6 +16,7 @@ const STORAGE_KEY_LAST_UPDATED = 'zeitgeist_last_updated';
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<AgentStatus>(AgentStatus.IDLE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
@@ -51,6 +53,27 @@ function App() {
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastUpdated]);
+
+  // Derive unique tags from articles sorted by frequency
+  const availableTags = useMemo(() => {
+    const allTags = articles.flatMap(article => article.tags);
+    const counts = allTags.reduce((acc, tag) => {
+      acc[tag] = (acc[tag] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.keys(counts).sort((a, b) => {
+      const diff = counts[b] - counts[a];
+      if (diff !== 0) return diff;
+      return a.localeCompare(b);
+    });
+  }, [articles]);
+
+  // Filter articles based on selection
+  const filteredArticles = useMemo(() => {
+    if (!selectedTag) return articles;
+    return articles.filter(article => article.tags.includes(selectedTag));
+  }, [articles, selectedTag]);
 
   const saveArticles = (newArticles: Article[]) => {
     const updatedList = [...newArticles, ...articles].slice(0, 50); // Keep last 50
@@ -134,6 +157,15 @@ function App() {
           </div>
         )}
 
+        {/* Tag Filter */}
+        {articles.length > 0 && (
+          <TagFilter 
+            tags={availableTags} 
+            selectedTag={selectedTag} 
+            onSelectTag={setSelectedTag} 
+          />
+        )}
+
         {articles.length === 0 && agentStatus === AgentStatus.IDLE && (
           <div className="text-center py-20 opacity-50">
             <h2 className="text-2xl font-serif mb-4">No analysis available.</h2>
@@ -146,16 +178,30 @@ function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-          {articles.map((article, index) => (
-            <ArticleCard 
-              key={article.id} 
-              article={article} 
-              onClick={setSelectedArticle}
-              featured={index === 0}
-            />
-          ))}
-        </div>
+        {filteredArticles.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+            {filteredArticles.map((article, index) => (
+              <ArticleCard 
+                key={article.id} 
+                article={article} 
+                onClick={setSelectedArticle}
+                featured={index === 0 && !selectedTag} // Only feature the first item if not filtering
+              />
+            ))}
+          </div>
+        ) : (
+          articles.length > 0 && (
+            <div className="text-center py-20">
+              <p className="text-gray-500 font-serif italic">No stories found for "{selectedTag}".</p>
+              <button 
+                onClick={() => setSelectedTag(null)}
+                className="mt-4 text-accent hover:underline font-bold text-sm uppercase tracking-wider"
+              >
+                Clear Filter
+              </button>
+            </div>
+          )
+        )}
       </main>
 
       {/* Admin Interface */}
