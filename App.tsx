@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from './components/Header';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleView } from './components/ArticleView';
@@ -13,6 +14,11 @@ import { BrainCircuit, AlertTriangle } from 'lucide-react';
 const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 Hours
 
 function App() {
+  const { slug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isAdmin = searchParams.get('adminTech') === 'in-the-house';
+  
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -21,29 +27,104 @@ function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoadingDB, setIsLoadingDB] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   
-  // Check for admin param
-  const isAdmin = new URLSearchParams(window.location.search).get('adminTech') === 'in-the-house';
-
-  // Load initial state from SQLite
+  // Ref to track status reset timeout
+  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Helper to create URL-friendly slug
+  const createSlug = (title: string) => {
+    return title.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+  
+  // Helper to safely set status with auto-reset
+  const setStatusWithReset = (status: AgentStatus, delay: number) => {
+    // Clear any existing timeout
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+    }
+    
+    setAgentStatus(status);
+    
+    // Set new timeout to reset to IDLE
+    statusTimeoutRef.current = setTimeout(() => {
+      setAgentStatus(AgentStatus.IDLE);
+      statusTimeoutRef.current = null;
+    }, delay);
+  };
+  
+  // Cleanup timeout on unmount
   useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Load initial state from database (only once)
+  useEffect(() => {
+    let mounted = true;
+    
     const initData = async () => {
       try {
         await dbService.waitForInit();
         const storedArticles = await dbService.getAllArticles();
         const storedTime = await dbService.getLastUpdated();
         
-        setArticles(storedArticles);
-        setLastUpdated(storedTime);
+        if (mounted) {
+          setArticles(storedArticles);
+          setLastUpdated(storedTime);
+        }
       } catch (e) {
         console.error("Failed to initialize DB data", e);
-        setDbError("Database initialization failed. Please reload or check console.");
+        if (mounted) {
+          setDbError("Database initialization failed. Please reload or check console.");
+        }
       } finally {
-        setIsLoadingDB(false);
+        if (mounted) {
+          setIsLoadingDB(false);
+        }
       }
     };
+    
     initData();
-  }, []);
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // Only run once on mount
+  
+  // Handle slug changes separately
+  useEffect(() => {
+    if (slug && articles.length > 0) {
+      const article = articles.find(a => createSlug(a.title) === slug);
+      if (article) {
+        setSelectedArticle(article);
+        setPreviewArticle(null); // Clear preview when opening full article
+      } else {
+        setSelectedArticle(null);
+      }
+    } else if (!slug) {
+      setSelectedArticle(null);
+      setPreviewArticle(null); // Clear preview when returning to homepage
+    }
+  }, [slug, articles]);
+  
+  // Handle article selection with URL change
+  const handleArticleClick = (article: Article) => {
+    const articleSlug = createSlug(article.title);
+    navigate(`/${articleSlug}`);
+    setSelectedArticle(article);
+  };
+  
+  // Handle close with URL reset
+  const handleCloseArticle = () => {
+    navigate('/');
+    setSelectedArticle(null);
+  };
 
   // Autonomous Check Loop
   useEffect(() => {
@@ -120,14 +201,12 @@ function App() {
       await dbService.setLastUpdated(now);
       setLastUpdated(now);
       
-      setAgentStatus(AgentStatus.COMPLETE);
-      setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
+      setStatusWithReset(AgentStatus.COMPLETE, 3000);
 
     } catch (error) {
       console.error(error);
-      setAgentStatus(AgentStatus.ERROR);
       setStatusMessage("System Failure: Agents disrupted.");
-      setTimeout(() => setAgentStatus(AgentStatus.IDLE), 5000);
+      setStatusWithReset(AgentStatus.ERROR, 5000);
     }
   };
 
@@ -140,12 +219,10 @@ function App() {
     try {
       const article = await runJournalistAgent(story);
       await saveArticles([article]);
-      setAgentStatus(AgentStatus.COMPLETE);
-      setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
+      setStatusWithReset(AgentStatus.COMPLETE, 3000);
     } catch (error) {
       console.error(error);
-      setAgentStatus(AgentStatus.ERROR);
-      setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
+      setStatusWithReset(AgentStatus.ERROR, 3000);
     }
   };
 
@@ -197,50 +274,74 @@ function App() {
           </div>
         )}
 
-        {/* Tag Filter */}
-        {articles.length > 0 && (
-          <TagFilter 
-            tags={availableTags} 
-            selectedTag={selectedTag} 
-            onSelectTag={setSelectedTag} 
+        {/* Full Article View - Only on /:slug route */}
+        {slug && selectedArticle && (
+          <ArticleView 
+            article={selectedArticle} 
+            onClose={handleCloseArticle}
+            isPreview={false}
           />
         )}
-
-        {articles.length === 0 && agentStatus === AgentStatus.IDLE && (
-          <div className="text-center py-20 opacity-50">
-            <h2 className="text-2xl font-serif mb-4">No analysis available.</h2>
-            <button 
-              onClick={triggerFullCycle}
-              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
-            >
-              Initialize Autonomous Sequence
-            </button>
-          </div>
-        )}
-
-        {filteredArticles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-            {filteredArticles.map((article, index) => (
-              <ArticleCard 
-                key={article.id} 
-                article={article} 
-                onClick={setSelectedArticle}
-                featured={index === 0 && !selectedTag} // Only feature the first item if not filtering
+        
+        {/* Home View - Only on / route */}
+        {!slug && (
+          <>
+            {/* Tag Filter */}
+            {articles.length > 0 && (
+              <TagFilter 
+                tags={availableTags} 
+                selectedTag={selectedTag} 
+                onSelectTag={setSelectedTag} 
               />
-            ))}
-          </div>
-        ) : (
-          articles.length > 0 && (
-            <div className="text-center py-20">
-              <p className="text-gray-500 font-serif italic">No stories found for "{selectedTag}".</p>
-              <button 
-                onClick={() => setSelectedTag(null)}
-                className="mt-4 text-accent hover:underline font-bold text-sm uppercase tracking-wider"
-              >
-                Clear Filter
-              </button>
-            </div>
-          )
+            )}
+
+            {articles.length === 0 && agentStatus === AgentStatus.IDLE && (
+              <div className="text-center py-20 opacity-50">
+                <h2 className="text-2xl font-serif mb-4">No analysis available.</h2>
+                <button 
+                  onClick={triggerFullCycle}
+                  className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+                >
+                  Initialize Autonomous Sequence
+                </button>
+              </div>
+            )}
+
+            {filteredArticles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+                {filteredArticles.map((article, index) => (
+                  <ArticleCard 
+                    key={article.id} 
+                    article={article} 
+                    onClick={handleArticleClick}
+                    onHoverPreview={setPreviewArticle}
+                    featured={index === 0 && !selectedTag}
+                  />
+                ))}
+              </div>
+            ) : (
+              articles.length > 0 && (
+                <div className="text-center py-20">
+                  <p className="text-gray-500 font-serif italic">No stories found for "{selectedTag}".</p>
+                  <button 
+                    onClick={() => setSelectedTag(null)}
+                    className="mt-4 text-accent hover:underline font-bold text-sm uppercase tracking-wider"
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+              )
+            )}
+            
+            {/* Preview on Hover - Only on home */}
+            {previewArticle && (
+              <ArticleView 
+                article={previewArticle} 
+                onClose={() => setPreviewArticle(null)}
+                isPreview={true}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -249,14 +350,6 @@ function App() {
         <AdminPanel 
           onInjectStory={handleManualInject} 
           isProcessing={agentStatus !== AgentStatus.IDLE}
-        />
-      )}
-
-      {/* Read Modal */}
-      {selectedArticle && (
-        <ArticleView 
-          article={selectedArticle} 
-          onClose={() => setSelectedArticle(null)} 
         />
       )}
     </div>

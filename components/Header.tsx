@@ -9,7 +9,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading }) => {
   return (
-    <header className="border-b-4 border-black py-6 mb-12 relative bg-paper sticky top-0 z-50">
+    <header className="border-b-4 border-black py-6 mb-12 bg-paper sticky top-0 z-50">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="bg-black text-white p-2">

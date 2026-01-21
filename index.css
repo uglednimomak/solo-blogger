@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-serif: 'Merriweather', serif;
+  --font-family-sans: 'Inter', sans-serif;
+  
+  --color-paper: #f8f5f2;
+  --color-ink: #1a1a1a;
+  --color-accent: #c0392b;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

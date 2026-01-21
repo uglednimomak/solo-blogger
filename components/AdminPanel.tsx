@@ -62,7 +62,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onInjectStory, isProcess
               onChange={(e) => setContext(e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-accent focus:outline-none h-24"
               placeholder="Provide context for the Journalist AI to analyze..."
-            />
+            ></textarea>
           </div>
 
           <button 

@@ -5,11 +5,73 @@ import { X, Share2, Bookmark } from 'lucide-react';
 interface ArticleViewProps {
   article: Article;
   onClose: () => void;
+  isPreview?: boolean;
 }
 
-export const ArticleView: React.FC<ArticleViewProps> = ({ article, onClose }) => {
+export const ArticleView: React.FC<ArticleViewProps> = ({ article, onClose, isPreview = false }) => {
+  const handleShare = async () => {
+    const slug = article.title.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    const url = `${window.location.origin}/${slug}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: article.title,
+          text: article.summary,
+          url: url
+        });
+      } catch (err) {
+        // User cancelled or error occurred
+        console.log('Share cancelled or failed', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy link', err);
+      }
+    }
+  };
+  
+  if (isPreview) {
+    // Preview mode - show just summary and first section
+    return (
+      <div className="fixed inset-0 z-90 flex items-end justify-center pointer-events-none">
+        <div 
+          className="bg-white w-full max-w-2xl shadow-2xl border-2 border-black p-8 m-8 animate-[slideUp_0.2s_ease-out]"
+          onMouseEnter={() => {}}
+          onMouseLeave={() => {}}
+        >
+          <div className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-6">
+            Preview // Hover to read
+          </div>
+          <h2 className="text-2xl font-serif font-bold mb-4 text-ink">
+            {article.title}
+          </h2>
+          <p className="text-gray-600 italic mb-6 leading-relaxed">
+            "{article.summary}"
+          </p>
+          {article.sections[0] && (
+            <div className="text-gray-700 mb-6">
+              <h3 className="font-bold uppercase text-sm mb-2">{article.sections[0].heading}</h3>
+              <p className="leading-relaxed line-clamp-4">{article.sections[0].content}</p>
+            </div>
+          )}
+          <div className="text-center">
+            <span className="text-sm font-bold text-accent">Click to read full analysis →</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Full article view
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
       <div 
         className="absolute inset-0 bg-paper/95 backdrop-blur-sm"
         onClick={onClose}
@@ -71,8 +133,8 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onClose }) =>
               ID: {article.id.split('-')[0]} // TS: {article.timestamp}
             </div>
             <div className="flex gap-4">
-              <button className="flex items-center gap-2 hover:text-black"><Share2 size={16} /> Share Data</button>
-              <button className="flex items-center gap-2 hover:text-black"><Bookmark size={16} /> Archive</button>
+              <button onClick={handleShare} className="flex items-center gap-2 hover:text-black transition-colors"><Share2 size={16} /> Share Story</button>
+              <button className="flex items-center gap-2 hover:text-black transition-colors"><Bookmark size={16} /> Archive</button>
             </div>
           </div>
         </article>

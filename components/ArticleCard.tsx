@@ -1,14 +1,37 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Article } from '../types';
 import { ArrowRight, Clock, Tag } from 'lucide-react';
 
 interface ArticleCardProps {
   article: Article;
   onClick: (article: Article) => void;
+  onHoverPreview?: (article: Article | null) => void;
   featured?: boolean;
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, featured = false }) => {
+export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, onHoverPreview, featured = false }) => {
+  const hoverTimeoutRef = useRef<number | null>(null);
+  
+  const handleHoverEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      onHoverPreview?.(article);
+    }, 300);
+  };
+  
+  const handleHoverLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    onHoverPreview?.(null);
+  };
+  
+  // Get first sentence or first 100 chars as teaser
+  const teaser = article.summary.split('.')[0] + '...' || article.summary.substring(0, 100) + '...';
+  
   return (
     <div 
       onClick={() => onClick(article)}
@@ -26,7 +49,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, feat
       </div>
 
       <div className={`flex flex-col ${featured ? 'md:w-1/2 justify-center' : 'flex-1'}`}>
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 font-mono">
+        <div className="flex items-center gap-2 text-xs text-gray-500 mt-2 mb-2 font-mono">
           <Clock size={12} />
           <span>{new Date(article.timestamp).toLocaleDateString()}</span>
           <span className="text-gray-300">|</span>
@@ -37,8 +60,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, feat
           {article.title}
         </h2>
 
-        <p className="text-gray-600 font-sans leading-relaxed mb-4 line-clamp-3">
-          {article.summary}
+        <p className="text-gray-600 font-sans leading-relaxed mb-4 line-clamp-2">
+          {teaser}
         </p>
 
         <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
@@ -49,7 +72,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, feat
               </span>
             ))}
           </div>
-          <span className="flex items-center gap-1 text-sm font-bold border-b-2 border-black pb-0.5 group-hover:border-accent group-hover:text-accent transition-all">
+          <span 
+            className="flex items-center gap-1 text-sm font-bold border-b-2 border-black pb-0.5 group-hover:border-accent group-hover:text-accent transition-all"
+            onMouseEnter={handleHoverEnter}
+            onMouseLeave={handleHoverLeave}
+          >
             Read Full Brief <ArrowRight size={14} />
           </span>
         </div>
@@ -57,3 +84,4 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, feat
     </div>
   );
 };
+          
