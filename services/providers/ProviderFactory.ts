@@ -6,7 +6,7 @@ import { OllamaProvider } from "./OllamaProvider";
 export class ProviderFactory {
   static createProvider(
     providerType: string,
-    config?: { apiKey?: string; baseUrl?: string; model?: string }
+    config?: { apiKey?: string; model?: string }
   ): AIProvider {
     const type = providerType.toLowerCase();
 
@@ -18,10 +18,10 @@ export class ProviderFactory {
         if (!config?.apiKey) {
           throw new Error("Gemini API key is required");
         }
-        return new GeminiProvider(config.apiKey);
+        return new GeminiProvider(config.apiKey, config.model);
 
       case "ollama":
-        return new OllamaProvider(config?.baseUrl, config?.model);
+        return new OllamaProvider(config?.model);
 
       default:
         console.warn(`Unknown provider "${providerType}", falling back to Mock`);
@@ -31,25 +31,27 @@ export class ProviderFactory {
 
   static createResearcher(): AIProvider {
     const providerType = import.meta.env.VITE_RESEARCHER_PROVIDER || "mock";
-    const config = {
-      apiKey: process.env.GEMINI_API_KEY,
-      baseUrl: import.meta.env.VITE_OLLAMA_BASE_URL,
-      model: import.meta.env.VITE_OLLAMA_MODEL
-    };
-
-    console.log(`📡 Researcher: ${providerType.toUpperCase()}`);
+    let config: { apiKey?: string; model?: string } = {};
+    if (providerType === "gemini") {
+      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+    } else if (providerType === "ollama") {
+      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+    }
+    console.log(`📡 Researcher: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);
   }
 
   static createJournalist(): AIProvider {
     const providerType = import.meta.env.VITE_JOURNALIST_PROVIDER || "mock";
-    const config = {
-      apiKey: process.env.GEMINI_API_KEY,
-      baseUrl: import.meta.env.VITE_OLLAMA_BASE_URL,
-      model: import.meta.env.VITE_OLLAMA_MODEL
-    };
-
-    console.log(`✍️  Journalist: ${providerType.toUpperCase()}`);
+    let config: { apiKey?: string; model?: string } = {};
+    if (providerType === "gemini") {
+      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+    } else if (providerType === "ollama") {
+      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+    }
+    console.log(`✍️  Journalist: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);
   }
 }

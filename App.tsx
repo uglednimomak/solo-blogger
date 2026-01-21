@@ -146,18 +146,20 @@ function App() {
   }, [lastUpdated, isLoadingDB, dbError]);
 
   // Derive unique tags from articles sorted by frequency
-  const availableTags = useMemo(() => {
+  const { availableTags, tagCounts } = useMemo(() => {
     const allTags = articles.flatMap(article => article.tags);
     const counts = allTags.reduce((acc, tag) => {
       acc[tag] = (acc[tag] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
-    return Object.keys(counts).sort((a, b) => {
+    const tags = Object.keys(counts).sort((a, b) => {
       const diff = counts[b] - counts[a];
       if (diff !== 0) return diff;
       return a.localeCompare(b);
     });
+    
+    return { availableTags: tags, tagCounts: counts };
   }, [articles]);
 
   // Filter articles based on selection
@@ -291,7 +293,8 @@ function App() {
               <TagFilter 
                 tags={availableTags} 
                 selectedTag={selectedTag} 
-                onSelectTag={setSelectedTag} 
+                onSelectTag={setSelectedTag}
+                tagCounts={tagCounts}
               />
             )}
 

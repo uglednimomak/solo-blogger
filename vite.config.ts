@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        'import.meta.env.VITE_GEMINI_MODEL': JSON.stringify(env.GEMINI_MODEL),
         'import.meta.env.VITE_TURSO_DATABASE_URL': JSON.stringify(env.TURSO_DATABASE_URL),
         'import.meta.env.VITE_TURSO_AUTH_TOKEN': JSON.stringify(env.TURSO_AUTH_TOKEN),
         'import.meta.env.VITE_RESEARCHER_PROVIDER': JSON.stringify(env.RESEARCHER_PROVIDER || 'mock'),
