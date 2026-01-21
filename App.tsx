@@ -6,12 +6,11 @@ import { AdminPanel } from './components/AdminPanel';
 import { TagFilter } from './components/TagFilter';
 import { Article, AgentStatus, NewsStory } from './types';
 import { runResearcherAgent, runJournalistAgent } from './services/geminiService';
-import { BrainCircuit } from 'lucide-react';
+import { dbService } from './services/db';
+import { BrainCircuit, AlertTriangle } from 'lucide-react';
 
 // Constants
 const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 Hours
-const STORAGE_KEY_ARTICLES = 'zeitgeist_articles';
-const STORAGE_KEY_LAST_UPDATED = 'zeitgeist_last_updated';
 
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -20,25 +19,36 @@ function App() {
   const [agentStatus, setAgentStatus] = useState<AgentStatus>(AgentStatus.IDLE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [isLoadingDB, setIsLoadingDB] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
   
   // Check for admin param
   const isAdmin = new URLSearchParams(window.location.search).get('adminTech') === 'in-the-house';
 
-  // Load initial state
+  // Load initial state from SQLite
   useEffect(() => {
-    const savedArticles = localStorage.getItem(STORAGE_KEY_ARTICLES);
-    const savedTime = localStorage.getItem(STORAGE_KEY_LAST_UPDATED);
-
-    if (savedArticles) {
-      setArticles(JSON.parse(savedArticles));
-    }
-    if (savedTime) {
-      setLastUpdated(parseInt(savedTime, 10));
-    }
+    const initData = async () => {
+      try {
+        await dbService.waitForInit();
+        const storedArticles = await dbService.getAllArticles();
+        const storedTime = await dbService.getLastUpdated();
+        
+        setArticles(storedArticles);
+        setLastUpdated(storedTime);
+      } catch (e) {
+        console.error("Failed to initialize DB data", e);
+        setDbError("Database initialization failed. Please reload or check console.");
+      } finally {
+        setIsLoadingDB(false);
+      }
+    };
+    initData();
   }, []);
 
   // Autonomous Check Loop
   useEffect(() => {
+    if (isLoadingDB || dbError) return;
+
     const checkNeedUpdate = () => {
       const now = Date.now();
       if (!lastUpdated || (now - lastUpdated > UPDATE_INTERVAL_MS)) {
@@ -48,11 +58,11 @@ function App() {
     };
 
     const timer = setInterval(checkNeedUpdate, 60000); // Check every minute
-    checkNeedUpdate(); // Check immediately on mount
+    checkNeedUpdate(); // Check immediately on mount/load
 
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastUpdated]);
+  }, [lastUpdated, isLoadingDB, dbError]);
 
   // Derive unique tags from articles sorted by frequency
   const availableTags = useMemo(() => {
@@ -75,10 +85,11 @@ function App() {
     return articles.filter(article => article.tags.includes(selectedTag));
   }, [articles, selectedTag]);
 
-  const saveArticles = (newArticles: Article[]) => {
-    const updatedList = [...newArticles, ...articles].slice(0, 50); // Keep last 50
-    setArticles(updatedList);
-    localStorage.setItem(STORAGE_KEY_ARTICLES, JSON.stringify(updatedList));
+  const saveArticles = async (newArticles: Article[]) => {
+    await dbService.saveArticles(newArticles);
+    // Refresh state from DB to ensure sync
+    const freshList = await dbService.getAllArticles();
+    setArticles(freshList);
   };
 
   const triggerFullCycle = async () => {
@@ -103,11 +114,11 @@ function App() {
       }
 
       // 3. Save
-      saveArticles(newArticles);
+      await saveArticles(newArticles);
       
       const now = Date.now();
+      await dbService.setLastUpdated(now);
       setLastUpdated(now);
-      localStorage.setItem(STORAGE_KEY_LAST_UPDATED, now.toString());
       
       setAgentStatus(AgentStatus.COMPLETE);
       setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
@@ -128,7 +139,7 @@ function App() {
 
     try {
       const article = await runJournalistAgent(story);
-      saveArticles([article]);
+      await saveArticles([article]);
       setAgentStatus(AgentStatus.COMPLETE);
       setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
     } catch (error) {
@@ -137,6 +148,35 @@ function App() {
       setTimeout(() => setAgentStatus(AgentStatus.IDLE), 3000);
     }
   };
+
+  if (isLoadingDB) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="text-center">
+          <BrainCircuit size={48} className="mx-auto text-black animate-pulse mb-4" />
+          <h2 className="text-xl font-serif">Initializing Neural Memory...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (dbError) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertTriangle size={48} className="mx-auto text-red-600 mb-4" />
+          <h2 className="text-2xl font-serif font-bold mb-2">System Failure</h2>
+          <p className="text-gray-600 mb-6">{dbError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+          >
+            Reboot System
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-paper pb-20">
