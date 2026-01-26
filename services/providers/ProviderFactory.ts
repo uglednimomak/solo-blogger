@@ -30,42 +30,43 @@ export class ProviderFactory {
   }
 
   static createResearcher(): AIProvider {
-    const providerType = import.meta.env.VITE_RESEARCHER_PROVIDER || "mock";
+    const providerType = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEARCHER_PROVIDER) || process.env.RESEARCHER_PROVIDER || "mock";
     let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
     if (providerType === "gemini") {
-      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+      config.apiKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || process.env.GEMINI_API_KEY;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_MODEL) || process.env.GEMINI_MODEL;
     } else if (providerType === "ollama") {
-      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
-      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+      config.baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_BASE_URL) || process.env.OLLAMA_BASE_URL;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_MODEL) || process.env.OLLAMA_MODEL;
     }
     console.log(`📡 Researcher: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);
   }
 
   static createJournalist(): AIProvider {
-    const providerType = import.meta.env.VITE_JOURNALIST_PROVIDER || "mock";
+    const providerType = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_JOURNALIST_PROVIDER) || process.env.JOURNALIST_PROVIDER || "mock";
     let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
     if (providerType === "gemini") {
-      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+      config.apiKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || process.env.GEMINI_API_KEY;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_MODEL) || process.env.GEMINI_MODEL;
     } else if (providerType === "ollama") {
-      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
-      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+      config.baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_BASE_URL) || process.env.OLLAMA_BASE_URL;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_MODEL) || process.env.OLLAMA_MODEL;
     }
     console.log(`✍️  Journalist: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);
   }
 
   static createPhilosopher(): AIProvider {
-    const providerType = import.meta.env.VITE_PHILOSOPHER_PROVIDER || import.meta.env.VITE_JOURNALIST_PROVIDER || "mock";
+    const providerEnv = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_PHILOSOPHER_PROVIDER || import.meta.env?.VITE_JOURNALIST_PROVIDER) : (process.env.PHILOSOPHER_PROVIDER || process.env.JOURNALIST_PROVIDER);
+    const providerType = providerEnv || "mock";
     let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
     if (providerType === "gemini") {
-      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+      config.apiKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || process.env.GEMINI_API_KEY;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_MODEL) || process.env.GEMINI_MODEL;
     } else if (providerType === "ollama") {
-      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
-      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+      config.baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_BASE_URL) || process.env.OLLAMA_BASE_URL;
+      config.model = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OLLAMA_MODEL) || process.env.OLLAMA_MODEL;
     }
     console.log(`🧠 Philosopher: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);

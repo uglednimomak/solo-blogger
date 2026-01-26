@@ -3,8 +3,8 @@ import { Article, PhilosophicalSummary } from '../types';
 
 // Initialize Turso client
 const client = createClient({
-  url: import.meta.env.VITE_TURSO_DATABASE_URL || '',
-  authToken: import.meta.env.VITE_TURSO_AUTH_TOKEN || '',
+  url: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TURSO_DATABASE_URL) || process.env.TURSO_DATABASE_URL || '',
+  authToken: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TURSO_AUTH_TOKEN) || process.env.TURSO_AUTH_TOKEN || '',
 });
 
 let initializationPromise: Promise<void> | null = null;
@@ -14,7 +14,7 @@ const initDB = async () => {
   if (isInitialized) {
     return; // Skip if already initialized
   }
-  
+
   console.log("Initializing Turso database...");
   try {
     await createTables();
@@ -72,11 +72,11 @@ export const dbService = {
 
   async getAllArticles(): Promise<Article[]> {
     await this.waitForInit();
-    
+
     try {
       const result = await client.execute("SELECT * FROM articles ORDER BY timestamp DESC LIMIT 50");
       const articles: Article[] = [];
-      
+
       for (const row of result.rows) {
         articles.push({
           id: row.id as string,
@@ -89,7 +89,7 @@ export const dbService = {
           imageUrl: row.imageUrl as string
         });
       }
-      
+
       return articles;
     } catch (e) {
       console.error("DB Fetch Error", e);
@@ -99,7 +99,7 @@ export const dbService = {
 
   async saveArticles(articles: Article[]) {
     await this.waitForInit();
-    
+
     try {
       for (const article of articles) {
         await client.execute({
@@ -126,13 +126,13 @@ export const dbService = {
 
   async getLastUpdated(): Promise<number | null> {
     await this.waitForInit();
-    
+
     try {
       const result = await client.execute({
         sql: "SELECT value FROM system_state WHERE key = ?",
         args: ['lastUpdated']
       });
-      
+
       if (result.rows.length > 0) {
         return parseInt(result.rows[0].value as string);
       }
@@ -145,7 +145,7 @@ export const dbService = {
 
   async setLastUpdated(timestamp: number) {
     await this.waitForInit();
-    
+
     try {
       await client.execute({
         sql: "INSERT OR REPLACE INTO system_state (key, value) VALUES (?, ?)",
@@ -158,11 +158,11 @@ export const dbService = {
 
   async getAllSummaries(): Promise<PhilosophicalSummary[]> {
     await this.waitForInit();
-    
+
     try {
       const result = await client.execute("SELECT * FROM philosophical_summaries ORDER BY timestamp DESC LIMIT 50");
       const summaries: PhilosophicalSummary[] = [];
-      
+
       for (const row of result.rows) {
         summaries.push({
           id: row.id as string,
@@ -178,7 +178,7 @@ export const dbService = {
           synthesis: JSON.parse(row.synthesis as string)
         });
       }
-      
+
       return summaries;
     } catch (e) {
       console.error("DB Fetch Summaries Error", e);
@@ -188,7 +188,7 @@ export const dbService = {
 
   async saveSummary(summary: PhilosophicalSummary) {
     await this.waitForInit();
-    
+
     try {
       await client.execute({
         sql: `INSERT OR REPLACE INTO philosophical_summaries 
@@ -215,13 +215,13 @@ export const dbService = {
 
   async getSummaryById(id: string): Promise<PhilosophicalSummary | null> {
     await this.waitForInit();
-    
+
     try {
       const result = await client.execute({
         sql: "SELECT * FROM philosophical_summaries WHERE id = ?",
         args: [id]
       });
-      
+
       if (result.rows.length > 0) {
         const row = result.rows[0];
         return {
@@ -247,13 +247,13 @@ export const dbService = {
 
   async getArticlesSinceLastSummary(): Promise<number> {
     await this.waitForInit();
-    
+
     try {
       const result = await client.execute({
         sql: "SELECT value FROM system_state WHERE key = ?",
         args: ['articlesSinceLastSummary']
       });
-      
+
       if (result.rows.length > 0) {
         return parseInt(result.rows[0].value as string);
       }
@@ -266,7 +266,7 @@ export const dbService = {
 
   async setArticlesSinceLastSummary(count: number) {
     await this.waitForInit();
-    
+
     try {
       await client.execute({
         sql: "INSERT OR REPLACE INTO system_state (key, value) VALUES (?, ?)",

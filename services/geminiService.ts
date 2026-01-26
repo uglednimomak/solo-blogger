@@ -8,11 +8,9 @@ const researcherProvider = ProviderFactory.createResearcher();
 const journalistProvider = ProviderFactory.createJournalist();
 const philosopherProvider = ProviderFactory.createPhilosopher();
 
-console.log('VITE_HUGGING_FACE_API_KEY:', import.meta.env.VITE_HUGGING_FACE_API_KEY);
-
 const imageProvider = ImageProviderFactory.createProvider(
-  import.meta.env.VITE_IMAGE_PROVIDER || 'huggingface',
-  import.meta.env.VITE_HUGGING_FACE_API_KEY
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_IMAGE_PROVIDER) || process.env.IMAGE_PROVIDER || 'huggingface',
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_HUGGING_FACE_API_KEY) || process.env.HUGGING_FACE_API_KEY || ''
 );
 
 // Fallback provider (Pollinations - free, no key needed)
@@ -56,7 +54,7 @@ Article context:
 ${content}
 
 Tags:`;
-  
+
   const result = await journalistProvider.generateText(prompt);
   // Clean up the response and split into tags
   const cleanResult = result.trim().replace(/^[\s\S]*?Tags:\s*/i, '');
@@ -76,7 +74,7 @@ Article context:
 ${content}
 
 SEO Title:`;
-  
+
   const title = (await journalistProvider.generateText(promptTitle)).trim().replace(/^["']|["']$/g, '');
 
   const promptDescription = `You are an SEO expert. Based on this article context, create ONE compelling meta description.
@@ -91,7 +89,7 @@ Article context:
 ${content}
 
 Meta Description:`;
-  
+
   const description = (await journalistProvider.generateText(promptDescription)).trim().replace(/^["']|["']$/g, '');
 
   return { title, description };
