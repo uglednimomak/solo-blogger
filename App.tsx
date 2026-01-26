@@ -5,20 +5,28 @@ import { ArticleCard } from './components/ArticleCard';
 import { ArticleView } from './components/ArticleView';
 import { AdminPanel } from './components/AdminPanel';
 import { TagFilter } from './components/TagFilter';
-import { Article, AgentStatus, NewsStory } from './types';
-import { runResearcherAgent, runJournalistAgent } from './services/geminiService';
+import { SummariesView } from './components/SummariesView';
+import { SummaryDetail } from './components/SummaryDetail';
+import { DemoPresentation } from './components/DemoPresentation';
+import { Article, AgentStatus, NewsStory, PhilosophicalSummary } from './types';
+
+import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTags, generateSeoMetadata } from './services/geminiService';
 import { dbService } from './services/db';
 import { BrainCircuit, AlertTriangle } from 'lucide-react';
 
 // Constants
 const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 Hours
 
-function App() {
-  const { slug } = useParams<{ slug?: string }>();
+interface AppProps {
+  view?: 'summaries' | 'summary-detail';
+}
+
+function App({ view }: AppProps = {}) {
+  const { slug, summaryId } = useParams<{ slug?: string; summaryId?: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isAdmin = searchParams.get('adminTech') === 'in-the-house';
-  
+
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -28,33 +36,37 @@ function App() {
   const [isLoadingDB, setIsLoadingDB] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
-  
+  const [selectedSummary, setSelectedSummary] = useState<PhilosophicalSummary | null>(null);
+  const [articlesSinceLastSummary, setArticlesSinceLastSummary] = useState<number>(0);
+  const [showDemo, setShowDemo] = useState(false);
+
+
   // Ref to track status reset timeout
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Helper to create URL-friendly slug
   const createSlug = (title: string) => {
     return title.toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
   };
-  
+
   // Helper to safely set status with auto-reset
   const setStatusWithReset = (status: AgentStatus, delay: number) => {
     // Clear any existing timeout
     if (statusTimeoutRef.current) {
       clearTimeout(statusTimeoutRef.current);
     }
-    
+
     setAgentStatus(status);
-    
+
     // Set new timeout to reset to IDLE
     statusTimeoutRef.current = setTimeout(() => {
       setAgentStatus(AgentStatus.IDLE);
       statusTimeoutRef.current = null;
     }, delay);
   };
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -67,16 +79,18 @@ function App() {
   // Load initial state from database (only once)
   useEffect(() => {
     let mounted = true;
-    
+
     const initData = async () => {
       try {
         await dbService.waitForInit();
         const storedArticles = await dbService.getAllArticles();
         const storedTime = await dbService.getLastUpdated();
-        
+        const storedCount = await dbService.getArticlesSinceLastSummary();
+
         if (mounted) {
           setArticles(storedArticles);
           setLastUpdated(storedTime);
+          setArticlesSinceLastSummary(storedCount);
         }
       } catch (e) {
         console.error("Failed to initialize DB data", e);
@@ -89,17 +103,26 @@ function App() {
         }
       }
     };
-    
+
     initData();
-    
+
     return () => {
       mounted = false;
     };
   }, []); // Only run once on mount
-  
-  // Handle slug changes separately
+
+  // Handle slug and summaryId changes separately
   useEffect(() => {
-    if (slug && articles.length > 0) {
+    if (summaryId && view === 'summary-detail') {
+      // Load summary detail
+      const loadSummary = async () => {
+        const summary = await dbService.getSummaryById(summaryId);
+        if (summary) {
+          setSelectedSummary(summary);
+        }
+      };
+      loadSummary();
+    } else if (slug && articles.length > 0) {
       const article = articles.find(a => createSlug(a.title) === slug);
       if (article) {
         setSelectedArticle(article);
@@ -107,23 +130,36 @@ function App() {
       } else {
         setSelectedArticle(null);
       }
-    } else if (!slug) {
+    } else if (!slug && !summaryId) {
       setSelectedArticle(null);
+      setSelectedSummary(null);
       setPreviewArticle(null); // Clear preview when returning to homepage
     }
-  }, [slug, articles]);
-  
+  }, [slug, summaryId, articles, view]);
+
   // Handle article selection with URL change
   const handleArticleClick = (article: Article) => {
     const articleSlug = createSlug(article.title);
     navigate(`/${articleSlug}`);
     setSelectedArticle(article);
   };
-  
+
   // Handle close with URL reset
   const handleCloseArticle = () => {
     navigate('/');
     setSelectedArticle(null);
+  };
+
+  // Handle summary selection
+  const handleSummaryClick = (summary: PhilosophicalSummary) => {
+    navigate(`/summaries/${summary.id}`);
+    setSelectedSummary(summary);
+  };
+
+  // Handle close summary
+  const handleCloseSummary = () => {
+    navigate('/summaries');
+    setSelectedSummary(null);
   };
 
   // Autonomous Check Loop
@@ -132,18 +168,34 @@ function App() {
 
     const checkNeedUpdate = () => {
       const now = Date.now();
-      if (!lastUpdated || (now - lastUpdated > UPDATE_INTERVAL_MS)) {
-        console.log("Auto-update triggered");
+      // Only trigger if lastUpdated exists AND time has passed
+      if (!lastUpdated) {
+        if (articles.length === 0) {
+          console.log("Auto-update triggered: Fresh start");
+          triggerFullCycle();
+        }
+        return;
+      }
+
+      const hoursSinceUpdate = (now - lastUpdated) / (60 * 60 * 1000);
+      console.log(`Time since last update: ${hoursSinceUpdate.toFixed(1)} hours`);
+
+      if (now - lastUpdated > UPDATE_INTERVAL_MS) {
+        console.log("Auto-update triggered: 12 hours passed");
         triggerFullCycle();
       }
     };
 
-    const timer = setInterval(checkNeedUpdate, 60000); // Check every minute
-    checkNeedUpdate(); // Check immediately on mount/load
+    // Wait 1 minute before first check to avoid triggering on every dev restart
+    const initialTimer = setTimeout(checkNeedUpdate, 60000);
+    const intervalTimer = setInterval(checkNeedUpdate, 60000); // Check every minute
 
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastUpdated, isLoadingDB, dbError]);
+  }, [lastUpdated, isLoadingDB, dbError, articles.length]);
 
   // Derive unique tags from articles sorted by frequency
   const { availableTags, tagCounts } = useMemo(() => {
@@ -152,13 +204,13 @@ function App() {
       acc[tag] = (acc[tag] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const tags = Object.keys(counts).sort((a, b) => {
       const diff = counts[b] - counts[a];
       if (diff !== 0) return diff;
       return a.localeCompare(b);
     });
-    
+
     return { availableTags: tags, tagCounts: counts };
   }, [articles]);
 
@@ -177,14 +229,14 @@ function App() {
 
   const triggerFullCycle = async () => {
     if (agentStatus !== AgentStatus.IDLE) return;
-    
+
     setAgentStatus(AgentStatus.RESEARCHING);
     setStatusMessage("Researcher Agent: Scanning global data streams...");
-    
+
     try {
       // 1. Research
       const stories = await runResearcherAgent();
-      
+
       setAgentStatus(AgentStatus.WRITING);
       setStatusMessage(`Journalist Agent: Analyzing ${stories.length} identified narratives...`);
 
@@ -192,17 +244,60 @@ function App() {
       const newArticles: Article[] = [];
       for (const story of stories) {
         setStatusMessage(`Journalist Agent: Writing analysis for "${story.topic}"...`);
-        const article = await runJournalistAgent(story);
+
+        // Auto-generate image, tags, and SEO for automated articles
+        const imageUrl = await runImageGenerationAgent(story.topic);
+        const articleContentForTags = story.context; // Or a more detailed version if available
+        const tags = await generateTags(articleContentForTags);
+        const seo = await generateSeoMetadata(articleContentForTags);
+
+        const enrichedStory: NewsStory = {
+          ...story,
+          imageUrl,
+          tags,
+          seo,
+        };
+
+        const article = await runJournalistAgent(enrichedStory);
         newArticles.push(article);
       }
 
-      // 3. Save
+      // 3. Save articles
       await saveArticles(newArticles);
-      
+
       const now = Date.now();
       await dbService.setLastUpdated(now);
       setLastUpdated(now);
-      
+
+      // 4. Check if we should generate philosophical summary
+      const newCount = articlesSinceLastSummary + newArticles.length;
+      setArticlesSinceLastSummary(newCount);
+      await dbService.setArticlesSinceLastSummary(newCount);
+
+      if (newCount >= 6) {
+        setAgentStatus(AgentStatus.SYNTHESIZING);
+        setStatusMessage("Philosopher Agent: Synthesizing meta-analysis from 6 narratives...");
+
+        try {
+          // Get last 6 articles
+          const allArticles = await dbService.getAllArticles();
+          const last6Articles = allArticles.slice(0, 6);
+
+          // Generate philosophical summary
+          const summary = await runPhilosopherAgent(last6Articles);
+          await dbService.saveSummary(summary);
+
+          // Reset counter
+          setArticlesSinceLastSummary(0);
+          await dbService.setArticlesSinceLastSummary(0);
+
+          console.log("✨ Philosophical synthesis complete!");
+        } catch (synthError) {
+          console.error("Philosophy synthesis failed, but continuing:", synthError);
+          // Don't throw - article generation was successful
+        }
+      }
+
       setStatusWithReset(AgentStatus.COMPLETE, 3000);
 
     } catch (error) {
@@ -246,7 +341,7 @@ function App() {
           <AlertTriangle size={48} className="mx-auto text-red-600 mb-4" />
           <h2 className="text-2xl font-serif font-bold mb-2">System Failure</h2>
           <p className="text-gray-600 mb-6">{dbError}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
           >
@@ -259,15 +354,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-paper pb-20">
-      <Header 
-        lastUpdated={lastUpdated} 
-        onRefresh={triggerFullCycle} 
+      <Header
+        lastUpdated={lastUpdated}
+        onRefresh={triggerFullCycle}
         loading={agentStatus !== AgentStatus.IDLE}
+        onShowDemo={() => setShowDemo(true)}
       />
+
+      {showDemo && <DemoPresentation onClose={() => setShowDemo(false)} />}
+
 
       {/* Main Content Area */}
       <main className="container mx-auto px-4">
-        
+
         {/* Status Bar */}
         {agentStatus !== AgentStatus.IDLE && (
           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 bg-black text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-pulse">
@@ -276,23 +375,38 @@ function App() {
           </div>
         )}
 
+        {/* Summaries View - /summaries route */}
+        {view === 'summaries' && !summaryId && (
+          <SummariesView onSummaryClick={handleSummaryClick} />
+        )}
+
+        {/* Summary Detail View - /summaries/:id route */}
+        {view === 'summary-detail' && selectedSummary && (
+          <SummaryDetail
+            summary={selectedSummary}
+            articles={articles}
+            onClose={handleCloseSummary}
+            onArticleClick={handleArticleClick}
+          />
+        )}
+
         {/* Full Article View - Only on /:slug route */}
-        {slug && selectedArticle && (
-          <ArticleView 
-            article={selectedArticle} 
+        {slug && selectedArticle && !view && (
+          <ArticleView
+            article={selectedArticle}
             onClose={handleCloseArticle}
             isPreview={false}
           />
         )}
-        
+
         {/* Home View - Only on / route */}
-        {!slug && (
+        {!slug && !view && (
           <>
             {/* Tag Filter */}
             {articles.length > 0 && (
-              <TagFilter 
-                tags={availableTags} 
-                selectedTag={selectedTag} 
+              <TagFilter
+                tags={availableTags}
+                selectedTag={selectedTag}
                 onSelectTag={setSelectedTag}
                 tagCounts={tagCounts}
               />
@@ -301,7 +415,7 @@ function App() {
             {articles.length === 0 && agentStatus === AgentStatus.IDLE && (
               <div className="text-center py-20 opacity-50">
                 <h2 className="text-2xl font-serif mb-4">No analysis available.</h2>
-                <button 
+                <button
                   onClick={triggerFullCycle}
                   className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
                 >
@@ -313,9 +427,9 @@ function App() {
             {filteredArticles.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
                 {filteredArticles.map((article, index) => (
-                  <ArticleCard 
-                    key={article.id} 
-                    article={article} 
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
                     onClick={handleArticleClick}
                     onHoverPreview={setPreviewArticle}
                     featured={index === 0 && !selectedTag}
@@ -326,7 +440,7 @@ function App() {
               articles.length > 0 && (
                 <div className="text-center py-20">
                   <p className="text-gray-500 font-serif italic">No stories found for "{selectedTag}".</p>
-                  <button 
+                  <button
                     onClick={() => setSelectedTag(null)}
                     className="mt-4 text-accent hover:underline font-bold text-sm uppercase tracking-wider"
                   >
@@ -335,11 +449,11 @@ function App() {
                 </div>
               )
             )}
-            
+
             {/* Preview on Hover - Only on home */}
             {previewArticle && (
-              <ArticleView 
-                article={previewArticle} 
+              <ArticleView
+                article={previewArticle}
                 onClose={() => setPreviewArticle(null)}
                 isPreview={true}
               />
@@ -350,8 +464,8 @@ function App() {
 
       {/* Admin Interface */}
       {isAdmin && (
-        <AdminPanel 
-          onInjectStory={handleManualInject} 
+        <AdminPanel
+          onInjectStory={handleManualInject}
           isProcessing={agentStatus !== AgentStatus.IDLE}
         />
       )}

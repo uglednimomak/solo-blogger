@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Article } from '../types';
 import { ArrowRight, Clock, Tag } from 'lucide-react';
+import { LazyImage } from './LazyImage';
 
 interface ArticleCardProps {
   article: Article;
@@ -38,11 +39,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick, onHo
       className={`group cursor-pointer border-2 border-transparent hover:border-black transition-all duration-300 p-4 bg-white shadow-sm hover:shadow-lg flex flex-col ${featured ? 'md:col-span-2 md:flex-row gap-6' : 'h-full'}`}
     >
       <div className={`${featured ? 'md:w-1/2' : 'w-full'} mb-4 md:mb-0 overflow-hidden relative aspect-video bg-gray-100`}>
-        <img 
-          src={article.imageUrl} 
-          alt={article.title}
-          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 grayscale group-hover:grayscale-0"
-        />
+        {article.imageUrl && (
+          <LazyImage 
+            src={article.imageUrl} 
+            alt={article.title}
+            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 grayscale group-hover:grayscale-0"
+          />
+        )}
         <div className="absolute top-2 left-2 bg-black text-white text-xs font-bold px-2 py-1 font-mono uppercase">
           Analysis
         </div>

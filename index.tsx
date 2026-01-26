@@ -15,6 +15,8 @@ root.render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="/summaries" element={<App view="summaries" />} />
+        <Route path="/summaries/:summaryId" element={<App view="summary-detail" />} />
         <Route path="/:slug" element={<App />} />
       </Routes>
     </BrowserRouter>

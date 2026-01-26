@@ -1,5 +1,5 @@
 import { AIProvider } from "./BaseProvider";
-import { NewsStory, Article } from "../../types";
+import { NewsStory, Article, PhilosophicalSummary } from "../../types";
 
 export class MockProvider implements AIProvider {
   name = "Mock";
@@ -52,6 +52,57 @@ export class MockProvider implements AIProvider {
       timestamp: Date.now(),
       sourceTopic: story.topic,
       imageUrl: `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 1000)}`
+    };
+  }
+
+  async generateText(prompt: string): Promise<string> {
+    console.log(`🤖 Mock Provider: Generating text for prompt "${prompt}"`);
+    if (prompt.includes('Tags:')) {
+      return "Technology, AI, Future";
+    }
+    if (prompt.includes('Title:')) {
+      return "A Mock Title";
+    }
+    if (prompt.includes('Description:')) {
+      return "A mock meta description for an article.";
+    }
+    return "This is a mock generated text response.";
+  }
+
+  async synthesizePhilosophy(articles: Article[]): Promise<PhilosophicalSummary> {
+    console.log(`🤖 Mock Provider: Synthesizing philosophy from ${articles.length} articles`);
+    
+    const timestamps = articles.map(a => a.timestamp).sort((a, b) => a - b);
+    
+    return {
+      id: `summary-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      title: "The Paradox of Progress: A Meta-Analysis of Our Zeitgeist",
+      content: `Examining these ${articles.length} narratives reveals a profound tension at the heart of contemporary civilization. We stand at a crossroads where technological advancement accelerates while social cohesion fragments. The articles collectively paint a picture of humanity grappling with the consequences of its own success - innovations that promise liberation while creating new forms of dependency, global cooperation emerging from crises of conflict, and the eternal struggle between immediate needs and long-term survival. This is not merely a collection of events, but a mirror reflecting humanity's evolutionary growing pains.`,
+      articleIds: articles.map(a => a.id),
+      timestamp: Date.now(),
+      dateRange: {
+        start: timestamps[0],
+        end: timestamps[timestamps.length - 1]
+      },
+      tags: ["Philosophy", "Meta-Analysis", "Zeitgeist", "Human Evolution"],
+      synthesis: {
+        themes: [
+          "The acceleration of technological change versus institutional adaptation",
+          "Individual autonomy in an interconnected global system",
+          "Short-term survival versus long-term existential planning"
+        ],
+        paradoxes: [
+          "We create tools for connection that deepen isolation",
+          "Knowledge expands exponentially while wisdom remains scarce",
+          "Global cooperation emerges from nationalist competition"
+        ],
+        futureImplications: [
+          "Will humanity develop the wisdom to match its technological power?",
+          "Can democratic systems adapt fast enough to govern AI-driven societies?",
+          "How do we balance individual freedom with collective survival?",
+          "What new forms of meaning emerge as material needs are met?"
+        ]
+      }
     };
   }
 }

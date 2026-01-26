@@ -1,6 +1,7 @@
 import React from 'react';
 import { Article } from '../types';
 import { X, Share2, Bookmark } from 'lucide-react';
+import { LazyImage } from './LazyImage';
 
 interface ArticleViewProps {
   article: Article;
@@ -98,46 +99,62 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onClose, isPr
             <div className="inline-block bg-accent text-white px-3 py-1 text-xs font-bold uppercase tracking-widest mb-6">
               Critical Analysis
             </div>
-            <h1 className="text-4xl md:text-5xl font-serif font-black mb-6 leading-tight text-ink">
+            <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4 text-ink leading-tight">
               {article.title}
             </h1>
-            <p className="text-lg md:text-xl text-gray-500 italic font-serif leading-relaxed">
+            <p className="text-gray-600 italic text-lg">
               "{article.summary}"
             </p>
           </header>
 
-          <div className="w-full h-px bg-gray-200 mb-12" />
+          {article.imageUrl && (
+            <figure className="mb-12">
+              <LazyImage 
+                src={article.imageUrl} 
+                alt={article.title}
+                className="w-full h-96 object-cover rounded-lg shadow-lg"
+                placeholderClassName="rounded-lg"
+              />
+              <figcaption className="text-center text-xs text-gray-500 mt-2">
+                AI-generated imagery based on the article's topic.
+              </figcaption>
+            </figure>
+          )}
 
-          <div className="max-w-prose mx-auto space-y-12">
-            {article.sections.map((section, idx) => (
-              <section key={idx} className="group">
-                <div className="flex items-baseline gap-4 mb-4">
-                  <span className="text-6xl font-black text-gray-100 font-serif select-none -ml-8 group-hover:text-accent/10 transition-colors">
-                    0{idx + 1}
-                  </span>
-                  <h3 className="text-2xl font-bold font-sans uppercase tracking-tight text-ink">
-                    {section.heading}
-                  </h3>
-                </div>
-                <div className="prose prose-lg prose-headings:font-serif text-gray-700 leading-loose">
-                  {section.content.split('\n').map((p, i) => (
-                    <p key={i} className="mb-4">{p}</p>
-                  ))}
-                </div>
+          <div className="max-w-2xl mx-auto">
+            {article.sections.map((section, index) => (
+              <section key={index} className="mb-8">
+                <h2 className="text-2xl font-bold font-serif text-ink mb-4 border-b-2 border-gray-100 pb-2">
+                  {section.heading}
+                </h2>
+                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  {section.content}
+                </p>
               </section>
             ))}
           </div>
+        </article>
 
-          <div className="mt-16 pt-8 border-t border-black flex flex-wrap gap-4 justify-between items-center text-sm font-mono text-gray-500">
-            <div>
-              ID: {article.id.split('-')[0]} // TS: {article.timestamp}
+        {/* Footer */}
+        <footer className="sticky bottom-0 bg-white border-t border-gray-100 p-4 z-10">
+          <div className="max-w-2xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              {article.tags.map((tag, index) => (
+                <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs font-mono rounded">
+                  #{tag}
+                </span>
+              ))}
             </div>
-            <div className="flex gap-4">
-              <button onClick={handleShare} className="flex items-center gap-2 hover:text-black transition-colors"><Share2 size={16} /> Share Story</button>
-              <button className="flex items-center gap-2 hover:text-black transition-colors"><Bookmark size={16} /> Archive</button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleShare} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <Share2 size={20} />
+              </button>
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <Bookmark size={20} />
+              </button>
             </div>
           </div>
-        </article>
+        </footer>
       </div>
     </div>
   );

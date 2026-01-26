@@ -6,7 +6,7 @@ import { OllamaProvider } from "./OllamaProvider";
 export class ProviderFactory {
   static createProvider(
     providerType: string,
-    config?: { apiKey?: string; model?: string }
+    config?: { apiKey?: string; model?: string; baseUrl?: string }
   ): AIProvider {
     const type = providerType.toLowerCase();
 
@@ -21,7 +21,7 @@ export class ProviderFactory {
         return new GeminiProvider(config.apiKey, config.model);
 
       case "ollama":
-        return new OllamaProvider(config?.model);
+        return new OllamaProvider(config?.baseUrl, config?.model);
 
       default:
         console.warn(`Unknown provider "${providerType}", falling back to Mock`);
@@ -31,11 +31,12 @@ export class ProviderFactory {
 
   static createResearcher(): AIProvider {
     const providerType = import.meta.env.VITE_RESEARCHER_PROVIDER || "mock";
-    let config: { apiKey?: string; model?: string } = {};
+    let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
     if (providerType === "gemini") {
       config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
       config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
     } else if (providerType === "ollama") {
+      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
       config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
     }
     console.log(`📡 Researcher: ${providerType.toUpperCase()} using model ${config.model}`);
@@ -44,14 +45,29 @@ export class ProviderFactory {
 
   static createJournalist(): AIProvider {
     const providerType = import.meta.env.VITE_JOURNALIST_PROVIDER || "mock";
-    let config: { apiKey?: string; model?: string } = {};
+    let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
     if (providerType === "gemini") {
       config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
       config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
     } else if (providerType === "ollama") {
+      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
       config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
     }
     console.log(`✍️  Journalist: ${providerType.toUpperCase()} using model ${config.model}`);
+    return this.createProvider(providerType, config);
+  }
+
+  static createPhilosopher(): AIProvider {
+    const providerType = import.meta.env.VITE_PHILOSOPHER_PROVIDER || import.meta.env.VITE_JOURNALIST_PROVIDER || "mock";
+    let config: { apiKey?: string; model?: string; baseUrl?: string } = {};
+    if (providerType === "gemini") {
+      config.apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+      config.model = import.meta.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL;
+    } else if (providerType === "ollama") {
+      config.baseUrl = import.meta.env.VITE_OLLAMA_BASE_URL;
+      config.model = import.meta.env.VITE_OLLAMA_MODEL || process.env.OLLAMA_MODEL;
+    }
+    console.log(`🧠 Philosopher: ${providerType.toUpperCase()} using model ${config.model}`);
     return this.createProvider(providerType, config);
   }
 }
