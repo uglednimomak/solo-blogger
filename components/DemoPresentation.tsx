@@ -13,9 +13,15 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
   const revealRef = useRef<Reveal.Api | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const isMounted = useRef(true);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   const speak = (text: string) => {
-    if (isMuted) return;
+    if (isMutedRef.current || !isMounted.current) return;
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
@@ -49,6 +55,7 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
   };
 
   useEffect(() => {
+    isMounted.current = true;
     let revealInstance: Reveal.Api | null = null;
 
     if (deckRef.current) {
@@ -64,6 +71,7 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
       });
 
       revealInstance.initialize().then(() => {
+        if (!isMounted.current) return;
         revealInstance?.slide(0);
 
         // Initial narration
@@ -73,6 +81,7 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
       });
 
       revealInstance.on('slidechanged', (event: any) => {
+        if (!isMounted.current) return;
         const narration = event.currentSlide.getAttribute('data-narration');
         if (narration) speak(narration);
       });
@@ -84,7 +93,15 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
     window.speechSynthesis.getVoices();
 
     return () => {
+      isMounted.current = false;
       window.speechSynthesis.cancel();
+      if (revealInstance) {
+        try {
+          revealInstance.destroy();
+        } catch (e) {
+          console.error('Error destroying Reveal instance:', e);
+        }
+      }
     };
   }, []);
 
@@ -92,7 +109,7 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
   useEffect(() => {
     if (isMuted) {
       window.speechSynthesis.cancel();
-    } else {
+    } else if (isMounted.current) {
       const currentSlide = revealRef.current?.getCurrentSlide();
       const narration = currentSlide?.getAttribute('data-narration');
       if (narration) speak(narration);
