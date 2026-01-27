@@ -4,11 +4,12 @@ import { dbService } from '../services/db';
 import { Article, NewsStory } from '../types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Option: Secure the cron with a secret header to prevent manual triggers
-  // const authHeader = req.headers['authorization'];
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return res.status(401).json({ error: 'Unauthorized' });
-  // }
+  // Security check: Only allow Vercel Cron to trigger this
+  const authHeader = req.headers['authorization'];
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    console.warn('Unauthorized attempt to trigger agent-cron. Authentication failed.');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   console.log('Starting autonomous agent cycle via Cron...');
 
