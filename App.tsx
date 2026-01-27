@@ -7,6 +7,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { TagFilter } from './components/TagFilter';
 import { SummariesView } from './components/SummariesView';
 import { SummaryDetail } from './components/SummaryDetail';
+import { AboutView } from './components/AboutView';
 import { DemoPresentation } from './components/DemoPresentation';
 import { Article, AgentStatus, NewsStory, PhilosophicalSummary } from './types';
 
@@ -18,7 +19,7 @@ import { BrainCircuit, AlertTriangle } from 'lucide-react';
 const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 Hours
 
 interface AppProps {
-  view?: 'summaries' | 'summary-detail';
+  view?: 'summaries' | 'summary-detail' | 'about';
 }
 
 function App({ view }: AppProps = {}) {
@@ -379,6 +380,11 @@ function App({ view }: AppProps = {}) {
         {/* Summaries View - /summaries route */}
         {view === 'summaries' && !summaryId && (
           <SummariesView onSummaryClick={handleSummaryClick} />
+        )}
+
+        {/* About View - /about route */}
+        {view === 'about' && (
+          <AboutView />
         )}
 
         {/* Summary Detail View - /summaries/:id route */}

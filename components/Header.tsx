@@ -1,5 +1,5 @@
 import React from 'react';
-import { Newspaper, Zap, BrainCircuit } from 'lucide-react';
+import { Newspaper, Zap, BrainCircuit, Info } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 
 interface HeaderProps {
@@ -13,8 +13,9 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading, onShowDemo }) => {
 
   const location = useLocation();
-  const isArticles = location.pathname === '/' || (!location.pathname.startsWith('/summaries') && location.pathname !== '/');
+  const isArticles = location.pathname === '/' || (!location.pathname.startsWith('/summaries') && !location.pathname.startsWith('/about') && location.pathname !== '/');
   const isSummaries = location.pathname.startsWith('/summaries');
+  const isAbout = location.pathname.startsWith('/about');
 
   return (
     <header className="border-b-4 border-black py-6 mb-8 bg-paper sticky top-0 z-50">
@@ -81,6 +82,16 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
           >
             <BrainCircuit size={16} />
             Philosophical Syntheses
+          </Link>
+          <Link
+            to="/about"
+            className={`flex items-center gap-2 text-sm font-mono uppercase tracking-wider transition-colors pb-1 ${isAbout
+              ? 'text-accent border-b-2 border-accent font-bold'
+              : 'text-gray-500 hover:text-accent'
+              }`}
+          >
+            <Info size={16} />
+            About
           </Link>
         </nav>
       </div>
