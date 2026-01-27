@@ -31,32 +31,33 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
           </Link>
 
 
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-mono text-gray-400 uppercase">Last Global Scan</div>
-              <div className="font-bold text-sm">
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:block">
+              <div className="text-[10px] font-mono text-gray-400 uppercase tracking-tighter">Last Global Scan</div>
+              <div className="font-bold text-xs uppercase tracking-tight">
                 {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Never'}
               </div>
             </div>
 
-            <button
-              onClick={onShowDemo}
-              className="px-4 py-2 bg-black text-white text-xs font-mono uppercase tracking-widest hover:bg-accent transition-colors flex items-center gap-2"
-            >
-              <Zap size={14} className="fill-current" />
-              Watch Demo
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onShowDemo}
+                className="px-4 py-2 bg-black text-white text-[10px] font-mono uppercase tracking-[0.2em] hover:bg-accent transition-all flex items-center gap-2 font-bold"
+              >
+                <Zap size={12} className="fill-current" />
+                Watch Demo
+              </button>
+
+              <button
+                onClick={onRefresh}
+                disabled={loading}
+                className={`p-2 bg-zinc-100 rounded-full hover:bg-zinc-200 transition-all ${loading ? 'animate-spin' : ''}`}
+                title="Refresh Agents"
+              >
+                <Zap size={18} />
+              </button>
+            </div>
           </div>
-
-
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            className={`p-2 rounded-full hover:bg-gray-200 transition-colors ${loading ? 'animate-spin' : ''}`}
-            title="Refresh Agents"
-          >
-            <Zap size={20} />
-          </button>
         </div>
 
         {/* Navigation */}
