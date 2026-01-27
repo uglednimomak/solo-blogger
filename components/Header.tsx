@@ -52,7 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
           <button
             onClick={onRefresh}
             disabled={loading}
-            className={`sm:hidden p-2 rounded-full hover:bg-gray-200 transition-colors ${loading ? 'animate-spin' : ''}`}
+            className={`p-2 rounded-full hover:bg-gray-200 transition-colors ${loading ? 'animate-spin' : ''}`}
+            title="Refresh Agents"
           >
             <Zap size={20} />
           </button>
@@ -63,8 +64,8 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
           <Link
             to="/"
             className={`flex items-center gap-2 text-sm font-mono uppercase tracking-wider transition-colors pb-1 ${isArticles
-                ? 'text-black border-b-2 border-black font-bold'
-                : 'text-gray-500 hover:text-black'
+              ? 'text-black border-b-2 border-black font-bold'
+              : 'text-gray-500 hover:text-black'
               }`}
           >
             <Newspaper size={16} />
@@ -73,8 +74,8 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
           <Link
             to="/summaries"
             className={`flex items-center gap-2 text-sm font-mono uppercase tracking-wider transition-colors pb-1 ${isSummaries
-                ? 'text-accent border-b-2 border-accent font-bold'
-                : 'text-gray-500 hover:text-accent'
+              ? 'text-accent border-b-2 border-accent font-bold'
+              : 'text-gray-500 hover:text-accent'
               }`}
           >
             <BrainCircuit size={16} />
