@@ -1,15 +1,4 @@
 {
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/[^.]+",
-      "dest": "/index.html",
-      "status": 200
-    }
-  ],
   "crons": [
     {
       "path": "/api/agent-cron",
@@ -17,8 +6,18 @@
     }
   ],
   "functions": {
-    "api/agent-cron.ts": {
+    "api/*.ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
