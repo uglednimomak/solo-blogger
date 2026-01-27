@@ -162,40 +162,38 @@ function App({ view }: AppProps = {}) {
     setSelectedSummary(null);
   };
 
-  // Autonomous Check Loop
+  // Manual Refresh Guard
+  const isRefreshingRef = useRef(false);
+
+  // Autonomous Check Loop - DISABLED in browser to preserve quota.
+  // Updated are now handled server-side via Vercel Cron.
+  /*
   useEffect(() => {
     if (isLoadingDB || dbError) return;
 
     const checkNeedUpdate = () => {
       const now = Date.now();
-      // Only trigger if lastUpdated exists AND time has passed
       if (!lastUpdated) {
         if (articles.length === 0) {
-          console.log("Auto-update triggered: Fresh start");
           triggerFullCycle();
         }
         return;
       }
 
-      const hoursSinceUpdate = (now - lastUpdated) / (60 * 60 * 1000);
-      console.log(`Time since last update: ${hoursSinceUpdate.toFixed(1)} hours`);
-
       if (now - lastUpdated > UPDATE_INTERVAL_MS) {
-        console.log("Auto-update triggered: 12 hours passed");
         triggerFullCycle();
       }
     };
 
-    // Wait 1 minute before first check to avoid triggering on every dev restart
     const initialTimer = setTimeout(checkNeedUpdate, 60000);
-    const intervalTimer = setInterval(checkNeedUpdate, 60000); // Check every minute
+    const intervalTimer = setInterval(checkNeedUpdate, 60000);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(intervalTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastUpdated, isLoadingDB, dbError, articles.length]);
+  */
 
   // Derive unique tags from articles sorted by frequency
   const { availableTags, tagCounts } = useMemo(() => {
@@ -228,8 +226,9 @@ function App({ view }: AppProps = {}) {
   };
 
   const triggerFullCycle = async () => {
-    if (agentStatus !== AgentStatus.IDLE) return;
+    if (agentStatus !== AgentStatus.IDLE || isRefreshingRef.current) return;
 
+    isRefreshingRef.current = true;
     setAgentStatus(AgentStatus.RESEARCHING);
     setStatusMessage("Researcher Agent: Scanning global data streams...");
 
@@ -304,6 +303,8 @@ function App({ view }: AppProps = {}) {
       console.error(error);
       setStatusMessage("System Failure: Agents disrupted.");
       setStatusWithReset(AgentStatus.ERROR, 5000);
+    } finally {
+      isRefreshingRef.current = false;
     }
   };
 
