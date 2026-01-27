@@ -15,11 +15,15 @@ export const AboutView: React.FC = () => {
       <div className="bg-white border-8 border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] overflow-hidden mb-16">
         <div className="aspect-video relative bg-black group">
           <video
-            src="/videos/ZEITGEIST_AI.mp4"
             controls
+            playsInline
+            preload="metadata"
             className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
             poster="/demo-intro.png"
-          />
+          >
+            <source src="/videos/ZEITGEIST_AI.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
           <div className="absolute top-4 left-4 bg-accent text-white font-mono text-xs px-2 py-1 uppercase font-bold animate-pulse">
             Internal Briefing: V1.04
           </div>
