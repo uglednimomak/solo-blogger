@@ -1,7 +1,7 @@
-import { AIProvider } from "./BaseProvider";
-import { MockProvider } from "./MockProvider";
-import { GeminiProvider } from "./GeminiProvider";
-import { OllamaProvider } from "./OllamaProvider";
+import { AIProvider } from "./BaseProvider.js";
+import { MockProvider } from "./MockProvider.js";
+import { GeminiProvider } from "./GeminiProvider.js";
+import { OllamaProvider } from "./OllamaProvider.js";
 
 export class ProviderFactory {
   static createProvider(

@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { AIProvider } from "./BaseProvider";
-import { NewsStory, Article, PhilosophicalSummary } from "../../types";
+import { AIProvider } from "./BaseProvider.js";
+import { NewsStory, Article, PhilosophicalSummary } from "../../types.js";
 
 const researchSchema: Schema = {
   type: Type.OBJECT,
@@ -134,7 +134,7 @@ export class GeminiProvider implements AIProvider {
           try {
             const result = JSON.parse(match[0]);
             if (Array.isArray(result.stories)) stories = result.stories;
-          } catch {}
+          } catch { }
         }
         // fallback: try to extract numbered list stories from plain text
         if (!stories.length && response.text) {
@@ -250,7 +250,7 @@ Write a profound, thought-provoking analysis that reveals the zeitgeist.
       });
 
       const data = JSON.parse(response.text || '{}');
-      
+
       // Calculate date range
       const timestamps = articles.map(a => a.timestamp).sort((a, b) => a - b);
       const dateRange = {

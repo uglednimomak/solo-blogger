@@ -1,4 +1,4 @@
-import { NewsStory, Article, PhilosophicalSummary } from "../../types";
+import { NewsStory, Article, PhilosophicalSummary } from "../../types.js";
 
 export interface AIProvider {
   name: string;

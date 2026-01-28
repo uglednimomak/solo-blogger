@@ -1,6 +1,6 @@
-import { HuggingFaceProvider } from './HuggingFaceProvider';
-import { PollinationsProvider } from './PollinationsProvider';
-import { ImageProvider } from './ImageProvider';
+import { HuggingFaceProvider } from './HuggingFaceProvider.js';
+import { PollinationsProvider } from './PollinationsProvider.js';
+import { ImageProvider } from './ImageProvider.js';
 
 export class ImageProviderFactory {
   static createProvider(provider: string, apiKey?: string): ImageProvider {

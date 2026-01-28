@@ -1,7 +1,7 @@
-import { NewsStory, Article, PhilosophicalSummary } from "../types";
-import { ProviderFactory } from "./providers/ProviderFactory";
-import { ImageProviderFactory } from "./providers/ImageProviderFactory";
-import { PollinationsProvider } from "./providers/PollinationsProvider";
+import { NewsStory, Article, PhilosophicalSummary } from "../types.js";
+import { ProviderFactory } from "./providers/ProviderFactory.js";
+import { ImageProviderFactory } from "./providers/ImageProviderFactory.js";
+import { PollinationsProvider } from "./providers/PollinationsProvider.js";
 
 // Create provider instances
 const researcherProvider = ProviderFactory.createResearcher();

@@ -1,4 +1,4 @@
-import { ImageProvider } from './ImageProvider';
+import { ImageProvider } from './ImageProvider.js';
 
 export class PollinationsProvider implements ImageProvider {
   async generateImage(prompt: string): Promise<string> {

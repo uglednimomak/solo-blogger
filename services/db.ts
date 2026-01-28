@@ -1,5 +1,5 @@
 import { createClient } from '@libsql/client';
-import { Article, PhilosophicalSummary } from '../types';
+import { Article, PhilosophicalSummary } from '../types.js';
 
 // Initialize Turso client
 const client = createClient({

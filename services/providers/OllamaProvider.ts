@@ -1,5 +1,5 @@
-import { AIProvider } from "./BaseProvider";
-import { NewsStory, Article, PhilosophicalSummary } from "../../types";
+import { AIProvider } from "./BaseProvider.js";
+import { NewsStory, Article, PhilosophicalSummary } from "../../types.js";
 
 export class OllamaProvider implements AIProvider {
   name = "Ollama";

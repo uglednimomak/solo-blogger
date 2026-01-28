@@ -1,4 +1,4 @@
-import { ImageProvider } from './ImageProvider';
+import { ImageProvider } from './ImageProvider.js';
 
 const MODEL_ID = 'runwayml/stable-diffusion-v1-5';
 
