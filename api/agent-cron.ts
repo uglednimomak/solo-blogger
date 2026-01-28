@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTags, generateSeoMetadata } from '../services/geminiService';
-import { dbService } from '../services/db';
-import { Article, NewsStory } from '../types';
+import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTags, generateSeoMetadata } from '../services/geminiService.js';
+import { dbService } from '../services/db.js';
+import { Article, NewsStory } from '../types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Security check: Only allow Vercel Cron to trigger this
