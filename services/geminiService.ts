@@ -65,8 +65,15 @@ JSON:`;
   const result = await journalistProvider.generateText(prompt);
   
   try {
+    // Strip markdown code blocks if present
+    let cleanResult = result.trim();
+    const jsonMatch = cleanResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      cleanResult = jsonMatch[1];
+    }
+    
     // Try to parse JSON directly
-    const data = JSON.parse(result.trim());
+    const data = JSON.parse(cleanResult);
     return {
       tags: data.tags || [],
       seo: {

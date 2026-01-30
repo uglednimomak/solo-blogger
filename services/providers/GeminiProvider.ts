@@ -128,18 +128,18 @@ export class GeminiProvider implements AIProvider {
       const result = await this.client.models.generateContent({
         model: this.model,
         contents: `
-          Find the top 3 biggest global news stories right now. 
+          Find the top 1 biggest global news story right now. 
           Focus on events with significant geopolitical, scientific, or social impact. 
           Return ONLY valid JSON in this exact format: 
-          {"stories": [{"topic":"headline here","context":"brief summary here"}, ...]}
+          {"stories": [{"topic":"headline here","context":"brief summary here"}]}
         `,
         config: {
           tools: [{ googleSearch: {} }],
           systemInstruction: `
             You are an elite Research AI. 
-            Your job is to scour the web for the most impactful news stories. 
+            Your job is to scour the web for the most impactful news story. 
             Ignore celebrity gossip. Focus on macro-level events. 
-            Return exactly 3 stories. 
+            Return exactly 1 story. 
             Output ONLY valid JSON as specified.
           `
         }
@@ -180,8 +180,8 @@ export class GeminiProvider implements AIProvider {
           }
         }
       }
-      // Ensure we return at least 3 stories if possible
-      return stories.slice(0, 3);
+      // Return only 1 story (changed from 3 to fit within 60s timeout)
+      return stories.slice(0, 1);
     } catch (error) {
       console.error("Gemini Research Error:", error);
       throw new Error("Gemini research failed");
