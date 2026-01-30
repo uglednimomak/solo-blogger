@@ -112,6 +112,45 @@ function App({ view }: AppProps = {}) {
     };
   }, []); // Only run once on mount
 
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout;
+
+    const checkForUpdates = async () => {
+      try {
+        const storedTime = await dbService.getLastUpdated();
+        
+        // If lastUpdated changed, fetch new articles
+        if (storedTime && storedTime !== lastUpdated) {
+          console.log('New articles detected, refreshing...');
+          const storedArticles = await dbService.getAllArticles();
+          const storedCount = await dbService.getArticlesSinceLastSummary();
+          
+          if (mounted) {
+            setArticles(storedArticles);
+            setLastUpdated(storedTime);
+            setArticlesSinceLastSummary(storedCount);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to check for updates', e);
+      }
+    };
+
+    // Start polling after initial load completes
+    if (!isLoadingDB) {
+      pollInterval = setInterval(checkForUpdates, 30000); // 30 seconds
+    }
+
+    return () => {
+      mounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [isLoadingDB, lastUpdated]); // Re-run when lastUpdated changes
+
   // Handle slug and summaryId changes separately
   useEffect(() => {
     if (summaryId && view === 'summary-detail') {
