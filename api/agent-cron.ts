@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTags, generateSeoMetadata } from '../services/geminiService.js';
+import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTagsAndSeo } from '../services/geminiService.js';
 import { dbService } from '../services/db.js';
 import { Article, NewsStory } from '../types.js';
 
@@ -13,6 +13,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   console.log('Starting autonomous agent cycle via Cron...');
 
+  // Helper function to delay between stories (avoid rate limits)
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   try {
     // 1. Research phase
     const stories = await runResearcherAgent();
@@ -22,15 +25,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, message: 'No new stories found.' });
     }
 
-    // 2. Writing phase (Sequential to avoid rate limits in serverless environment)
+    // 2. Writing phase (Sequential with delays to avoid rate limits)
     const newArticles: Article[] = [];
-    for (const story of stories) {
-      console.log(`Processing story: ${story.topic}`);
+    for (let i = 0; i < stories.length; i++) {
+      const story = stories[i];
+      console.log(`Processing story ${i + 1}/${stories.length}: ${story.topic}`);
 
       try {
         const imageUrl = await runImageGenerationAgent(story.topic);
-        const tags = await generateTags(story.context);
-        const seo = await generateSeoMetadata(story.context);
+        const { tags, seo } = await generateTagsAndSeo(story.context);
 
         const enrichedStory: NewsStory = {
           ...story,
@@ -41,6 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const article = await runJournalistAgent(enrichedStory);
         newArticles.push(article);
+        
+        // Wait 2 minutes between stories to respect rate limits (except after last story)
+        if (i < stories.length - 1) {
+          console.log(`Waiting 2 minutes before processing next story...`);
+          await delay(120000); // 2 minutes = 120000ms
+        }
       } catch (articleError) {
         console.error(`Failed to process story "${story.topic}":`, articleError);
         // Continue with other stories even if one fails

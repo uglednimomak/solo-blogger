@@ -42,55 +42,58 @@ export const runImageGenerationAgent = async (prompt: string): Promise<string> =
 };
 
 // --- Tagging and SEO ---
-export const generateTags = async (content: string): Promise<string[]> => {
-  const prompt = `You are a tagging assistant. Based on this article context, generate exactly 3-5 relevant tags.
+// --- Combined Tags and SEO (Single API call to save quota) ---
+export const generateTagsAndSeo = async (content: string): Promise<{ 
+  tags: string[]; 
+  seo: { title: string; description: string } 
+}> => {
+  const prompt = `You are an SEO and content tagging expert. Based on this article context, generate:
+1. Exactly 3-5 relevant tags
+2. An SEO-friendly title (max 60 characters)
+3. A compelling meta description (150-160 characters)
 
 RULES:
-- Return ONLY the tags as a comma-separated list
+- Return ONLY valid JSON in this exact format
 - No explanations, no conversational text
-- Just the tags: tag1, tag2, tag3
+- Format: {"tags": ["tag1", "tag2", "tag3"], "title": "...", "description": "..."}
 
 Article context:
 ${content}
 
-Tags:`;
+JSON:`;
 
   const result = await journalistProvider.generateText(prompt);
-  // Clean up the response and split into tags
-  const cleanResult = result.trim().replace(/^[\s\S]*?Tags:\s*/i, '');
-  return cleanResult.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+  
+  try {
+    // Try to parse JSON directly
+    const data = JSON.parse(result.trim());
+    return {
+      tags: data.tags || [],
+      seo: {
+        title: data.title?.trim().replace(/^["']|["']$/g, '') || '',
+        description: data.description?.trim().replace(/^["']|["']$/g, '') || ''
+      }
+    };
+  } catch (e) {
+    console.warn('Failed to parse tags/SEO JSON, using fallback:', e);
+    // Fallback: extract from text
+    return {
+      tags: ['AI', 'Technology', 'News'],
+      seo: {
+        title: content.substring(0, 60),
+        description: content.substring(0, 155)
+      }
+    };
+  }
+};
+
+// Legacy functions (kept for backwards compatibility)
+export const generateTags = async (content: string): Promise<string[]> => {
+  const result = await generateTagsAndSeo(content);
+  return result.tags;
 };
 
 export const generateSeoMetadata = async (content: string): Promise<{ title: string; description: string }> => {
-  const promptTitle = `You are an SEO expert. Based on this article context, create ONE concise, SEO-friendly title.
-
-RULES:
-- Return ONLY the title text
-- No quotes, no explanations
-- Maximum 60 characters
-- Make it compelling and keyword-rich
-
-Article context:
-${content}
-
-SEO Title:`;
-
-  const title = (await journalistProvider.generateText(promptTitle)).trim().replace(/^["']|["']$/g, '');
-
-  const promptDescription = `You are an SEO expert. Based on this article context, create ONE compelling meta description.
-
-RULES:
-- Return ONLY the description text
-- No quotes, no explanations
-- 150-160 characters exactly
-- Make it engaging and include key terms
-
-Article context:
-${content}
-
-Meta Description:`;
-
-  const description = (await journalistProvider.generateText(promptDescription)).trim().replace(/^["']|["']$/g, '');
-
-  return { title, description };
+  const result = await generateTagsAndSeo(content);
+  return result.seo;
 };
