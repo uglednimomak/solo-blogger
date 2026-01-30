@@ -85,6 +85,28 @@ export class GeminiProvider implements AIProvider {
     this.client = new GoogleGenAI({ apiKey });
   }
 
+  /**
+   * Safely extracts text from Gemini API response
+   * Handles both wrapper format (response.text) and raw format (candidates structure)
+   */
+  private extractText(result: any): string {
+    // Try wrapper format first (some SDK versions)
+    if (result.response?.text) {
+      return typeof result.response.text === 'function' 
+        ? result.response.text() 
+        : result.response.text;
+    }
+    
+    // Try raw candidates structure (current SDK version)
+    if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return result.candidates[0].content.parts[0].text;
+    }
+    
+    // No valid text found
+    console.error("Unable to extract text from Gemini response. Full result:", JSON.stringify(result, null, 2));
+    throw new Error("Gemini API returned no valid text response - possibly blocked by safety filters");
+  }
+
   async generateText(prompt: string): Promise<string> {
     console.log(`🤖 Gemini Provider (${this.model}): Generating text`);
     try {
@@ -93,13 +115,7 @@ export class GeminiProvider implements AIProvider {
         contents: prompt,
       });
       
-      if (!result.response) {
-        console.error("Gemini returned no response. Full result:", JSON.stringify(result, null, 2));
-        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
-      }
-      
-      const response = result.response;
-      return response.text();
+      return this.extractText(result);
     } catch (error) {
       console.error("Error generating text with Gemini:", error);
       throw error;
@@ -129,20 +145,14 @@ export class GeminiProvider implements AIProvider {
         }
       });
       
-      if (!result.response) {
-        console.error("Gemini research returned no response. Full result:", JSON.stringify(result, null, 2));
-        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
-      }
-      
-      const response = result.response;
+      const responseText = this.extractText(result);
       let stories: NewsStory[] = [];
       // Try to parse JSON directly
       try {
-        const result = JSON.parse(response.text() || '{"stories": []}');
+        const result = JSON.parse(responseText || '{"stories": []}');
         if (Array.isArray(result.stories)) stories = result.stories;
       } catch (e) {
         // fallback: try to extract stories from plain text
-        const responseText = response.text();
         const match = responseText?.match(/\{\s*"stories"\s*:\s*\[.*\]\s*\}/s);
         if (match) {
           try {
@@ -209,12 +219,8 @@ export class GeminiProvider implements AIProvider {
         }
       });
 
-      if (!result.response) {
-        console.error("Gemini writeArticle returned no response. Full result:", JSON.stringify(result, null, 2));
-        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
-      }
-
-      const data = JSON.parse(result.response.text() || '{}');
+      const responseText = this.extractText(result);
+      const data = JSON.parse(responseText || '{}');
       return {
         id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         timestamp: Date.now(),
