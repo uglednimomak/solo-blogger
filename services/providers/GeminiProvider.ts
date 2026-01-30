@@ -92,6 +92,12 @@ export class GeminiProvider implements AIProvider {
         model: this.model,
         contents: prompt,
       });
+      
+      if (!result.response) {
+        console.error("Gemini returned no response. Full result:", JSON.stringify(result, null, 2));
+        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
+      }
+      
       const response = result.response;
       return response.text();
     } catch (error) {
@@ -103,7 +109,7 @@ export class GeminiProvider implements AIProvider {
   async research(): Promise<NewsStory[]> {
     console.log(`🤖 Gemini Provider (${this.model}): Researching news stories`);
     try {
-      const response = await this.client.models.generateContent({
+      const result = await this.client.models.generateContent({
         model: this.model,
         contents: `
           Find the top 3 biggest global news stories right now. 
@@ -122,14 +128,22 @@ export class GeminiProvider implements AIProvider {
           `
         }
       });
+      
+      if (!result.response) {
+        console.error("Gemini research returned no response. Full result:", JSON.stringify(result, null, 2));
+        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
+      }
+      
+      const response = result.response;
       let stories: NewsStory[] = [];
       // Try to parse JSON directly
       try {
-        const result = JSON.parse(response.text || '{"stories": []}');
+        const result = JSON.parse(response.text() || '{"stories": []}');
         if (Array.isArray(result.stories)) stories = result.stories;
       } catch (e) {
         // fallback: try to extract stories from plain text
-        const match = response.text?.match(/\{\s*"stories"\s*:\s*\[.*\]\s*\}/s);
+        const responseText = response.text();
+        const match = responseText?.match(/\{\s*"stories"\s*:\s*\[.*\]\s*\}/s);
         if (match) {
           try {
             const result = JSON.parse(match[0]);
@@ -137,21 +151,21 @@ export class GeminiProvider implements AIProvider {
           } catch { }
         }
         // fallback: try to extract numbered list stories from plain text
-        if (!stories.length && response.text) {
+        if (!stories.length && responseText) {
           // Match numbered list items with bolded headlines and summaries
           const numberedRegex = /\d+\.\s+\*\*(.+?)\*\*\s+([\s\S]+?)(?=(\n\d+\.|$))/g;
           let m;
-          while ((m = numberedRegex.exec(response.text)) !== null) {
+          while ((m = numberedRegex.exec(responseText)) !== null) {
             const topic = m[1].trim();
             const context = m[2].replace(/\s+/g, ' ').trim();
             stories.push({ topic, context });
           }
         }
         // fallback: try to extract lines that look like stories
-        if (!stories.length && response.text) {
+        if (!stories.length && responseText) {
           const regex = /topic\s*:\s*"([^"\n]+)"[\s,\n]*context\s*:\s*"([^"\n]+)"/gi;
           let m;
-          while ((m = regex.exec(response.text)) !== null) {
+          while ((m = regex.exec(responseText)) !== null) {
             stories.push({ topic: m[1], context: m[2] });
           }
         }
@@ -180,7 +194,7 @@ export class GeminiProvider implements AIProvider {
         - Catchy, provocative title.
       `;
 
-      const response = await this.client.models.generateContent({
+      const result = await this.client.models.generateContent({
         model: this.model,
         contents: prompt,
         config: {
@@ -195,7 +209,12 @@ export class GeminiProvider implements AIProvider {
         }
       });
 
-      const data = JSON.parse(response.text || '{}');
+      if (!result.response) {
+        console.error("Gemini writeArticle returned no response. Full result:", JSON.stringify(result, null, 2));
+        throw new Error("Gemini API returned no response - possibly blocked by safety filters");
+      }
+
+      const data = JSON.parse(result.response.text() || '{}');
       return {
         id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         timestamp: Date.now(),
