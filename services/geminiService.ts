@@ -9,7 +9,7 @@ const journalistProvider = ProviderFactory.createJournalist();
 const philosopherProvider = ProviderFactory.createPhilosopher();
 
 const imageProvider = ImageProviderFactory.createProvider(
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_IMAGE_PROVIDER) || process.env.IMAGE_PROVIDER || 'huggingface',
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_IMAGE_PROVIDER) || process.env.IMAGE_PROVIDER || 'pollinations',
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_HUGGING_FACE_API_KEY) || process.env.HUGGING_FACE_API_KEY || ''
 );
 

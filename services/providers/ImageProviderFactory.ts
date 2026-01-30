@@ -6,7 +6,10 @@ export class ImageProviderFactory {
   static createProvider(provider: string, apiKey?: string): ImageProvider {
     switch (provider) {
       case 'huggingface':
-        if (!apiKey) throw new Error('Hugging Face requires an API key');
+        if (!apiKey) {
+          console.warn('Hugging Face requires an API key. Falling back to Pollinations.');
+          return new PollinationsProvider();
+        }
         return new HuggingFaceProvider(apiKey);
       case 'pollinations':
         return new PollinationsProvider();
