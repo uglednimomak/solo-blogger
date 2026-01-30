@@ -71,13 +71,14 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
       });
 
       revealInstance.initialize().then(() => {
-        if (!isMounted.current) return;
-        revealInstance?.slide(0);
+        if (!isMounted.current || !revealInstance) return;
 
         // Initial narration
-        const firstSlide = revealInstance?.getCurrentSlide();
-        const narration = firstSlide?.getAttribute('data-narration');
-        if (narration) speak(narration);
+        const firstSlide = revealInstance.getCurrentSlide();
+        if (firstSlide) {
+          const narration = firstSlide.getAttribute('data-narration');
+          if (narration) speak(narration);
+        }
       });
 
       revealInstance.on('slidechanged', (event: any) => {
@@ -97,7 +98,10 @@ export const DemoPresentation: React.FC<DemoPresentationProps> = ({ onClose }) =
       window.speechSynthesis.cancel();
       if (revealInstance) {
         try {
+          // Unbind events first to be safe
+          revealInstance.off('slidechanged', () => { });
           revealInstance.destroy();
+          revealRef.current = null;
         } catch (e) {
           console.error('Error destroying Reveal instance:', e);
         }

@@ -9,7 +9,16 @@ export const AboutView: React.FC = () => {
           <Info size={32} />
         </div>
         <h2 className="text-6xl font-serif font-black tracking-tighter mb-4 italic">ABOUT ZEITGEIST AI</h2>
-        <div className="w-24 h-2 bg-accent mx-auto"></div>
+        <div className="w-24 h-2 bg-accent mx-auto mb-8"></div>
+
+        <div className="max-w-2xl mx-auto text-center mb-12">
+          <p className="text-sm font-serif italic text-gray-500 mb-2">
+            Zeitgeist is a German word refers to mood, or cultural climate of a particular period in history.
+          </p>
+          <p className="text-sm font-serif italic text-gray-500">
+            Think of it as the "vibe" of an era—the invisible force that shapes how people think, act, and create during a specific decade or generation.
+          </p>
+        </div>
       </div>
 
       <div className="bg-white border-8 border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] overflow-hidden mb-16">

@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, loading,
                 className="px-4 py-2 bg-black text-white text-[10px] font-mono uppercase tracking-[0.2em] hover:bg-accent transition-all flex items-center gap-2 font-bold"
               >
                 <Zap size={12} className="fill-current" />
-                Watch Demo
+                Slideshow
               </button>
 
               <button

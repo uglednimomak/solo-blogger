@@ -16,7 +16,7 @@
       "destination": "/api/:path*"
     },
     {
-      "source": "/((?!api/|manifest.json|favicon.ico|images/).*)",
+      "source": "/((?!api/|manifest.json|favicon.ico|images/|videos/).*)",
       "destination": "/index.html"
     }
   ]

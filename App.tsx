@@ -371,9 +371,9 @@ function App({ view }: AppProps = {}) {
 
         {/* Status Bar */}
         {agentStatus !== AgentStatus.IDLE && (
-          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 bg-black text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-pulse">
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-100 bg-black text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-pulse border border-white/10">
             <BrainCircuit size={20} className={agentStatus === AgentStatus.ERROR ? "text-red-500" : "text-accent"} />
-            <span className="font-mono text-sm">{statusMessage}</span>
+            <span className="font-mono text-sm uppercase tracking-tight">{statusMessage}</span>
           </div>
         )}
 
