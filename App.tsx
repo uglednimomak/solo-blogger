@@ -11,7 +11,7 @@ import { AboutView } from './components/AboutView';
 import { DemoPresentation } from './components/DemoPresentation';
 import { Article, AgentStatus, NewsStory, PhilosophicalSummary } from './types';
 
-import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTags, generateSeoMetadata } from './services/geminiService';
+import { runResearcherAgent, runJournalistAgent, runPhilosopherAgent, runImageGenerationAgent, generateTagsAndSeo } from './services/geminiService';
 import { dbService } from './services/db';
 import { BrainCircuit, AlertTriangle } from 'lucide-react';
 
@@ -287,8 +287,7 @@ function App({ view }: AppProps = {}) {
         // Auto-generate image, tags, and SEO for automated articles
         const imageUrl = await runImageGenerationAgent(story.topic);
         const articleContentForTags = story.context; // Or a more detailed version if available
-        const tags = await generateTags(articleContentForTags);
-        const seo = await generateSeoMetadata(articleContentForTags);
+        const { tags, seo } = await generateTagsAndSeo(articleContentForTags);
 
         const enrichedStory: NewsStory = {
           ...story,

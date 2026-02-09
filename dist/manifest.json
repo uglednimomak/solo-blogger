@@ -1,0 +1,31 @@
+{
+  "name": "Zeitgeist AI: The Autonomous Observer",
+  "short_name": "Zeitgeist AI",
+  "description": "Independent journalist-researcher platform analyzing global events through moral, economic, and evolutionary perspectives.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "education", "productivity"],
+  "lang": "en-US"
+}
