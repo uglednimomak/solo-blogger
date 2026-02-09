@@ -8,10 +8,12 @@ const researcherProvider = ProviderFactory.createResearcher();
 const journalistProvider = ProviderFactory.createJournalist();
 const philosopherProvider = ProviderFactory.createPhilosopher();
 
-const imageProvider = ImageProviderFactory.createProvider(
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_IMAGE_PROVIDER) || process.env.IMAGE_PROVIDER || 'pollinations',
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_HUGGING_FACE_API_KEY) || process.env.HUGGING_FACE_API_KEY || ''
-);
+const imageProviderType = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_IMAGE_PROVIDER) || process.env.IMAGE_PROVIDER || 'pollinations';
+const imageProviderApiKey = imageProviderType === 'gemini' || imageProviderType === 'gemini'
+  ? ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || process.env.GEMINI_API_KEY || '')
+  : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_HUGGING_FACE_API_KEY) || process.env.HUGGING_FACE_API_KEY || '');
+
+const imageProvider = ImageProviderFactory.createProvider(imageProviderType, imageProviderApiKey);
 
 // Fallback provider (Pollinations - free, no key needed)
 const fallbackImageProvider = new PollinationsProvider();
